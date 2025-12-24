@@ -1,0 +1,9 @@
+/.env
+/.env.example
+/index.js
+/node_modules
+/package-lock.json
+/package.json
+/README.md
+/RealtimeVoice.js
+/tts_output.mp3
