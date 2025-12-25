@@ -25,3 +25,7 @@ build/
 # Temporary files
 *.tmp
 .cache/
+tts_output.mp3
+
+# Admin metrics
+metrics.json

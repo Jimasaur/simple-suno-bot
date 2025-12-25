@@ -1,4 +1,8 @@
 require("dotenv").config();
+
+// Start admin server
+require('./admin-server');
+
 // Set FFMPEG_PATH before requiring discord-player
 try {
   process.env.FFMPEG_PATH = require("ffmpeg-static");
@@ -27,12 +31,21 @@ const openai = new OpenAI({
   apiKey: process.env.OPEN_AI_API_KEY,
 });
 
-// State variables for customization
-let currentVoice = "alloy";
-let systemPrompt =
-  "You are a helpful assistant. Always respond super concisely.";
+// State variables for customization (exposed globally for admin panel)
+global.botCurrentVoice = "alloy";
+global.botSystemPrompt = "You are a helpful assistant. Always respond super concisely.";
+
+let currentVoice = global.botCurrentVoice;
+let systemPrompt = global.botSystemPrompt;
+
 const VALID_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
 const chatHistory = new Map(); // Key: channelId, Value: Array of message objects
+
+// Sync function to keep local vars in sync with global
+setInterval(() => {
+  currentVoice = global.botCurrentVoice;
+  systemPrompt = global.botSystemPrompt;
+}, 1000);
 
 async function setupPlayer() {
   await player.extractors.loadMulti(DefaultExtractors);
@@ -73,11 +86,17 @@ async function resolveSunoUrl(url) {
 
 client.once("ready", () => {
   console.log(`Simple Suno Bot is ready! Logged in as ${client.user.tag}`);
+  if (global.adminAddLog) {
+    global.adminAddLog('info', `Bot logged in as ${client.user.tag}`);
+  }
 });
 
 // Event listener for when a track starts playing
 player.events.on("playerStart", (queue, track) => {
   queue.metadata.channel.send(`🎶 Now playing: **${track.title}**`);
+  if (global.adminAddLog) {
+    global.adminAddLog('info', `Now playing: ${track.title}`);
+  }
 });
 
 client.on("messageCreate", async (message) => {
@@ -123,6 +142,14 @@ client.on("messageCreate", async (message) => {
 
       // Add assistant response to history
       history.push({ role: "assistant", content: reply });
+
+      // Log chat metric
+      if (global.adminIncrementMetric) {
+        global.adminIncrementMetric('chat');
+      }
+      if (global.adminAddLog) {
+        global.adminAddLog('info', `Chat: ${prompt.substring(0, 50)}...`);
+      }
 
       // Discord has a 2000 char limit, split if necessary
       if (reply.length > 2000) {
@@ -182,7 +209,7 @@ client.on("messageCreate", async (message) => {
 
     try {
       const resolvedUrl = await resolveSunoUrl(url);
-      await player.play(channel, resolvedUrl, {
+      const result = await player.play(channel, resolvedUrl, {
         nodeOptions: {
           leaveOnEnd: false, // Don't leave immediately when song ends
           leaveOnEmpty: true, // Leave if channel is empty
@@ -195,8 +222,22 @@ client.on("messageCreate", async (message) => {
           },
         },
       });
+
+      // Log play metric
+      if (global.adminIncrementMetric) {
+        global.adminIncrementMetric('play', {
+          url: url,
+          title: result.track?.title || 'Unknown'
+        });
+      }
+      if (global.adminAddLog) {
+        global.adminAddLog('info', `Playing: ${url}`);
+      }
     } catch (e) {
       console.error(e);
+      if (global.adminAddLog) {
+        global.adminAddLog('error', `Play error: ${e.message}`);
+      }
       return message.reply(`❌ Error: ${e.message}`);
     }
   }
@@ -285,8 +326,19 @@ client.on("messageCreate", async (message) => {
           },
         },
       });
+
+      // Log TTS metric
+      if (global.adminIncrementMetric) {
+        global.adminIncrementMetric('tts');
+      }
+      if (global.adminAddLog) {
+        global.adminAddLog('info', `TTS: ${text.substring(0, 50)}...`);
+      }
     } catch (e) {
       console.error(e);
+      if (global.adminAddLog) {
+        global.adminAddLog('error', `TTS error: ${e.message}`);
+      }
       message.reply(`❌ Error: ${e.message}`);
     }
   }
@@ -336,11 +388,17 @@ client.on("messageCreate", async (message) => {
 });
 
 // Player event error handling
-player.events.on("error", (queue, error) =>
-  console.log(`[Queue Error] ${error.message}`)
-);
-player.events.on("playerError", (queue, error) =>
-  console.log(`[Player Error] ${error.message}`)
-);
+player.events.on("error", (queue, error) => {
+  console.log(`[Queue Error] ${error.message}`);
+  if (global.adminAddLog) {
+    global.adminAddLog('error', `Queue Error: ${error.message}`);
+  }
+});
+player.events.on("playerError", (queue, error) => {
+  console.log(`[Player Error] ${error.message}`);
+  if (global.adminAddLog) {
+    global.adminAddLog('error', `Player Error: ${error.message}`);
+  }
+});
 
 client.login(process.env.DISCORD_TOKEN);
