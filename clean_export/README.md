@@ -1,6 +1,6 @@
-# Simple Suno & Chat Bot
+# Synesthesia
 
-A lightweight, feature-rich Discord bot that plays Suno music, chats using GPT-5-mini, and speaks with OpenAI's high-quality TTS voices.
+A lightweight, feature-rich Discord bot that combines Suno music, chats using GPT-5-mini, and speaks with OpenAI's high-quality TTS voices.
 
 ## Features
 
@@ -16,6 +16,7 @@ A lightweight, feature-rich Discord bot that plays Suno music, chats using GPT-5
     *   [Node.js](https://nodejs.org/) (v18 or higher recommended).
     *   A [Discord Bot Token](https://discord.com/developers/applications).
     *   An [OpenAI API Key](https://platform.openai.com/).
+    *   A [Google GenAI Key](https://aistudio.google.com/) (for Image Generation).
 
 2.  **Installation**:
     ```bash
@@ -29,6 +30,7 @@ A lightweight, feature-rich Discord bot that plays Suno music, chats using GPT-5
     ```env
     DISCORD_TOKEN=your_discord_bot_token
     OPEN_AI_API_KEY=your_openai_api_key
+    GOOGLE_API_KEY=your_google_api_key
     ```
 
 4.  **Running the Bot**:

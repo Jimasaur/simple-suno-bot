@@ -1,6 +1,6 @@
 # How This Tool Works
 
-A comprehensive guide to understanding the Suno Bot architecture and data flow.
+A comprehensive guide to understanding the Synesthesia architecture and data flow.
 
 ---
 
@@ -20,7 +20,7 @@ A comprehensive guide to understanding the Suno Bot architecture and data flow.
              │                  │                      │
              ▼                  ▼                      ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    SUNO BOT (Raspberry Pi)                          │
+│                    SYNESTHESIA (Raspberry Pi)                       │
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │                     index.js (Main Process)                   │  │

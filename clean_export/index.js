@@ -34,6 +34,15 @@ const openai = new OpenAI({
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
+if (!process.env.GOOGLE_API_KEY) {
+  console.warn("⚠️ GOOGLE_API_KEY is missing. Image generation and editing will not work.");
+}
+
+// ==================================================================================
+// GLOBAL STATE BRIDGE
+// This section exposes variables to the global scope so they can be read/written 
+// by the admin-server.js process. This allows the web dashboard to control the bot.
+// ==================================================================================
 // State variables for customization (exposed globally for admin panel)
 global.botCurrentVoice = "alloy";
 global.botSystemPrompt = "You are a helpful assistant. Always respond super concisely.";
@@ -98,7 +107,7 @@ async function resolveSunoUrl(url) {
 }
 
 client.once("ready", () => {
-  console.log(`Simple Suno Bot is ready! Logged in as ${client.user.tag}`);
+  console.log(`Synesthesia is ready! Logged in as ${client.user.tag}`);
   if (global.adminAddLog) {
     global.adminAddLog('info', `Bot logged in as ${client.user.tag}`);
   }
@@ -545,9 +554,37 @@ client.on("messageCreate", async (message) => {
       const tempFile = path.join(__dirname, "tts_output.mp3");
       fs.writeFileSync(tempFile, buffer);
 
+      // Check if already connected to avoid double dings
+      const queue = player.nodes.get(message.guild.id);
+      const isConnected = queue && queue.connection && queue.channel.id === channel.id;
+
+      if (!isConnected) {
+        try {
+          // Connect first and wait 3 seconds to let the Discord "join ding" finish
+          const newQueue = player.nodes.create(message.guild, {
+            leaveOnEnd: false,
+            leaveOnEmpty: true,
+            leaveOnEmptyCooldown: 300000,
+            selfDeaf: true,
+            metadata: {
+              channel: message.channel,
+              author: message.author,
+            }
+          });
+          await newQueue.connect(channel);
+          await new Promise(r => setTimeout(r, 3000));
+        } catch (e) {
+          console.log("Connection error or already connected", e);
+        }
+      }
+
       await player.play(channel, tempFile, {
         searchEngine: QueryType.FILE,
         nodeOptions: {
+          leaveOnEnd: false, // Keep bot connected after speaking
+          leaveOnEmpty: true,
+          leaveOnEmptyCooldown: 300000, // Wait 5 minutes before leaving
+          leaveOnStop: false,
           selfDeaf: true,
           metadata: {
             channel: message.channel,
@@ -575,7 +612,7 @@ client.on("messageCreate", async (message) => {
   // !help
   if (command === "!help") {
     const helpEmbed = new EmbedBuilder()
-      .setTitle("Suno Bot Commands")
+      .setTitle("Synesthesia Commands")
       .setDescription("Here are the available commands:")
       .addFields(
         {

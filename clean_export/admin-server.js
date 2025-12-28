@@ -1,3 +1,8 @@
+/**
+ * Admin Server (Express)
+ * This file runs the web dashboard and API for Synesthesia.
+ * It shares state with the main bot process via global variables.
+ */
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -15,6 +20,10 @@ app.use(express.json({ limit: '50mb' })); // Increased limit for base64 images
 app.use(express.static('public'));
 
 const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+
+if (!process.env.GOOGLE_API_KEY) {
+  console.warn("⚠️ GOOGLE_API_KEY is missing for Admin Server. Image editing API will fail.");
+}
 
 app.post('/api/edit-image', async (req, res) => {
   try {

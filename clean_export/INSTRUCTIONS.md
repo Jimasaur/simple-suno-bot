@@ -1,4 +1,4 @@
-# Simple Suno Bot - Raspberry Pi Setup Guide
+# Synesthesia - Raspberry Pi Setup Guide
 
 This folder contains everything you need to run the bot on your Raspberry Pi (or any other server), except for the sensitive `.env` file and the `node_modules` which you will install there.
 
@@ -35,7 +35,7 @@ _Note: This might take a few minutes on a Pi, especially for `ffmpeg-static`._
    ```bash
    mv .env.example .env
    ```
-2. Open `.env` and paste your actual API keys (Diskord Token and OpenAI Key).
+2. Open `.env` and paste your actual API keys (Discord Bot Token, OpenAI API Key, and Google API Key for Image Gen).
    ```bash
    nano .env
    ```
