@@ -16,6 +16,7 @@ const { DefaultExtractors } = require("@discord-player/extractor");
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { OpenAI } = require("openai");
+const { GoogleGenAI } = require("@google/genai");
 
 const client = new Client({
   intents: [
@@ -31,12 +32,24 @@ const openai = new OpenAI({
   apiKey: process.env.OPEN_AI_API_KEY,
 });
 
+const genAI = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
+
 // State variables for customization (exposed globally for admin panel)
 global.botCurrentVoice = "alloy";
 global.botSystemPrompt = "You are a helpful assistant. Always respond super concisely.";
+global.imageGenConfig = {
+  aspectRatio: "1:1",
+  personGeneration: "allow_adult",
+  safetyLevel: "block_only_high",
+  numberOfImages: 1,
+  addWatermark: true,
+  includeRaiReasoning: true
+};
 
 let currentVoice = global.botCurrentVoice;
 let systemPrompt = global.botSystemPrompt;
+// We access global.imageGenConfig directly in the command, so no need for local sync var
+
 
 const VALID_VOICES = ["alloy", "echo", "fable", "onyx", "nova", "shimmer"];
 const chatHistory = new Map(); // Key: channelId, Value: Array of message objects
@@ -197,6 +210,222 @@ client.on("messageCreate", async (message) => {
     );
   }
 
+
+
+
+
+  // !image <prompt>
+  if (command === "!image") {
+    const prompt = message.content.slice(7).trim();
+    if (!prompt)
+      return message.reply("Please provide a description! Usage: `!image A futuristic city`");
+
+    if (!process.env.GOOGLE_API_KEY) {
+      return message.reply("❌ Google API Key is missing. Please check your .env file.");
+    }
+
+    try {
+      await message.channel.sendTyping();
+      const waitingMsg = await message.reply("🎨 Generating image with Imagen 4 (Nano Banana Pro)... please wait.");
+
+      const response = await genAI.models.generateImages({
+        model: 'imagen-4.0-generate-001',
+        prompt: prompt,
+        config: {
+          numberOfImages: global.imageGenConfig.numberOfImages || 1,
+          aspectRatio: global.imageGenConfig.aspectRatio || "1:1",
+          personGeneration: global.imageGenConfig.personGeneration || "allow_adult",
+          includeRaiReasoning: global.imageGenConfig.includeRaiReasoning !== false, // Default true
+          safetySettings: [
+            {
+              category: "HARM_CATEGORY_HATE_SPEECH",
+              threshold: global.imageGenConfig.safetyLevel || "block_only_high"
+            },
+            {
+              category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+              threshold: global.imageGenConfig.safetyLevel || "block_only_high"
+            },
+            {
+              category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+              threshold: global.imageGenConfig.safetyLevel || "block_only_high"
+            },
+            {
+              category: "HARM_CATEGORY_HARASSMENT",
+              threshold: global.imageGenConfig.safetyLevel || "block_only_high"
+            }
+          ]
+        }
+      });
+
+
+
+      if (response.generatedImages && response.generatedImages.length > 0) {
+
+        const filePaths = [];
+        const fs = require('fs');
+        const path = require('path');
+
+        // Ensure public dir exists
+        if (!fs.existsSync(path.join(__dirname, 'public'))) {
+          fs.mkdirSync(path.join(__dirname, 'public'));
+        }
+
+        for (let i = 0; i < response.generatedImages.length; i++) {
+          const image = response.generatedImages[i];
+          const buffer = Buffer.from(image.image.imageBytes, 'base64');
+          const filename = `gen_${Date.now()}_${i}.png`;
+          const filepath = path.join(__dirname, 'public', filename);
+
+          fs.writeFileSync(filepath, buffer);
+          filePaths.push(filepath);
+        }
+
+        await message.reply({
+          content: `🎨 Here is your image(s) for: **${prompt}**`,
+          files: filePaths
+        });
+
+        // Cleanup
+        setTimeout(() => {
+          filePaths.forEach(fp => {
+            try { fs.unlinkSync(fp); } catch (e) { }
+          });
+        }, 60000);
+
+        // Cleanup waiting message
+        waitingMsg.delete().catch(() => { });
+
+        // Metrics
+        if (global.adminIncrementMetric) {
+          global.adminIncrementMetric('image_gen');
+        }
+        if (global.adminAddLog) {
+          global.adminAddLog('info', `Image Generated: ${prompt.substring(0, 30)}...`);
+        }
+
+      } else {
+        await waitingMsg.edit(`⚠️ The model returned no images.`);
+      }
+
+    } catch (error) {
+      console.error("Image Gen Error:", error);
+      await message.reply(`❌ Error generating image: ${error.message}`);
+    }
+  }
+
+  // !edit <prompt>
+  if (command === "!edit") {
+    const prompt = message.content.slice(6).trim();
+    if (!prompt)
+      return message.reply("Please provide a description! Usage: `!edit Change the color to red`");
+
+    if (!process.env.GOOGLE_API_KEY) {
+      return message.reply("❌ Google API Key is missing. Please check your .env file.");
+    }
+
+    // Find image attachment
+    let imageUrl = null;
+    if (message.attachments.size > 0) {
+      const attachment = message.attachments.first();
+      // Check for image content type
+      if (attachment.contentType && attachment.contentType.startsWith('image/')) {
+        imageUrl = attachment.url;
+      }
+    } else if (message.reference) {
+      try {
+        const referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
+        if (referencedMessage.attachments.size > 0) {
+          const attachment = referencedMessage.attachments.first();
+          if (attachment.contentType && attachment.contentType.startsWith('image/')) {
+            imageUrl = attachment.url;
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching referenced message:", err);
+      }
+    }
+
+    if (!imageUrl) {
+      return message.reply("Please attach an image or reply to a message with an image to edit!");
+    }
+
+    try {
+      await message.channel.sendTyping();
+      const waitingMsg = await message.reply("🎨 Editing image with Gemini 2.5 Flash... please wait.");
+
+      // Download the image
+      const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+      const base64Image = Buffer.from(imageResponse.data).toString('base64');
+      const mimeType = imageResponse.headers['content-type'] || 'image/png';
+
+      // Call Gemini
+      const response = await genAI.models.generateContent({
+        model: "gemini-2.5-flash-image",
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: mimeType,
+                  data: base64Image
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+      // Handle response
+      if (response && response.candidates && response.candidates.length > 0) {
+        const candidate = response.candidates[0];
+        const imagePart = candidate.content.parts.find(p => p.inlineData);
+
+        if (imagePart) {
+          const fs = require('fs');
+          const path = require('path');
+
+          // Helper to convert base64 to buffer
+          const buffer = Buffer.from(imagePart.inlineData.data, 'base64');
+          const filename = `edit_${Date.now()}.png`; // Assuming PNG for safety, though model returns mimeType
+          const filepath = path.join(__dirname, 'public', filename);
+
+          // Make sure public exists (it should)
+          if (!fs.existsSync(path.join(__dirname, 'public'))) {
+            fs.mkdirSync(path.join(__dirname, 'public'));
+          }
+
+          fs.writeFileSync(filepath, buffer);
+
+          await message.reply({
+            content: `🎨 **Edit Result:** ${prompt}`,
+            files: [filepath]
+          });
+
+          // Cleanup
+          setTimeout(() => {
+            try { fs.unlinkSync(filepath); } catch (e) { }
+          }, 60000);
+
+        } else {
+          // Check for text refusal/error
+          const textPart = candidate.content.parts.find(p => p.text);
+          await message.reply(`⚠️ The model returned text instead of an image: ${textPart ? textPart.text : 'Unknown response'}`);
+        }
+      } else {
+        await waitingMsg.edit(`⚠️ The model returned no candidates.`);
+      }
+
+      // Cleanup waiting message
+      waitingMsg.delete().catch(() => { });
+
+    } catch (error) {
+      console.error("Image Edit Error:", error);
+      await message.reply(`❌ Error editing image: ${error.message}`);
+    }
+  }
+
   // !play <url>
   if (command === "!play") {
     const url = args[1];
@@ -355,6 +584,14 @@ client.on("messageCreate", async (message) => {
             0,
             50
           )}...)`,
+        },
+        {
+          name: "!image <prompt>",
+          value: "Generate an image with Imagen 4 (Nano Banana Pro).",
+        },
+        {
+          name: "!edit <prompt>",
+          value: "Edit an attached/replied image with Gemini 2.5 Flash.",
         },
         { name: "!reset", value: "Clear the chat history for this channel." },
         {

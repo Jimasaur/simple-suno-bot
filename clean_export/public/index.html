@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suno Bot Admin</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -13,7 +15,7 @@
             box-sizing: border-box;
         }
 
-        :root {
+        :root[data-theme="dark"] {
             --bg-primary: #0a0a0a;
             --bg-secondary: #141414;
             --bg-tertiary: #1a1a1a;
@@ -29,6 +31,22 @@
             --accent-warning: #ffaa00;
         }
 
+        :root[data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f5f5f5;
+            --bg-tertiary: #e8e8e8;
+            --border-color: #d0d0d0;
+            --text-primary: #0a0a0a;
+            --text-secondary: #606060;
+            --text-tertiary: #a0a0a0;
+            --accent-primary: #00cc6a;
+            --accent-primary-glow: rgba(0, 204, 106, 0.2);
+            --accent-secondary: #0066cc;
+            --accent-purple: #9900cc;
+            --accent-danger: #cc3333;
+            --accent-warning: #cc8800;
+        }
+
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
@@ -39,6 +57,7 @@
             padding: 0;
             min-height: 100vh;
             overflow-x: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
@@ -47,7 +66,7 @@
             padding: 32px;
         }
 
-        /* Header with Gradient */
+        /* Header */
         header {
             margin-bottom: 40px;
             position: relative;
@@ -78,6 +97,32 @@
             font-weight: 500;
         }
 
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .theme-toggle {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
+            transform: translateY(-2px);
+        }
+
         .status-pill {
             display: inline-flex;
             align-items: center;
@@ -102,15 +147,33 @@
             animation: pulse 2s ease-in-out infinite;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(1.2); }
+        .status-pill.ws-connected .status-dot {
+            background: var(--accent-primary);
         }
 
-        /* Hero Metrics - Eye-catching */
+        .status-pill.ws-disconnected .status-dot {
+            background: var(--accent-danger);
+            box-shadow: 0 0 20px var(--accent-danger);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(1.2);
+            }
+        }
+
+        /* Hero Metrics */
         .hero-metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 20px;
             margin-bottom: 32px;
         }
@@ -140,7 +203,7 @@
         .hero-metric:hover {
             border-color: var(--accent-primary);
             transform: translateY(-4px);
-            box-shadow: 0 12px 40px rgba(0, 255, 136, 0.2);
+            box-shadow: 0 12px 40px var(--accent-primary-glow);
         }
 
         .hero-metric:hover::before {
@@ -155,8 +218,15 @@
         }
 
         @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
+
+            0%,
+            100% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
         }
 
         .metric-label {
@@ -186,7 +256,7 @@
             font-weight: 600;
         }
 
-        /* Expandable Card with Accent */
+        /* Card */
         .card {
             background: var(--bg-secondary);
             border: 2px solid var(--border-color);
@@ -257,7 +327,7 @@
 
         .card.expanded .card-icon {
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 8px 24px var(--accent-primary-glow);
             transform: scale(1.1);
         }
 
@@ -292,7 +362,7 @@
             background: var(--accent-primary);
             border-color: var(--accent-primary);
             color: var(--bg-primary);
-            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.4);
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
         }
 
         .card-content {
@@ -302,14 +372,54 @@
         }
 
         .card.expanded .card-content {
-            max-height: 2000px;
+            max-height: 3000px;
         }
 
         .card-body {
             padding: 0 28px 28px 28px;
         }
 
-        /* Form Elements with Glow */
+        /* Persona Presets */
+        .persona-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .persona-card {
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .persona-card:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
+            transform: translateY(-2px);
+        }
+
+        .persona-card.active {
+            border-color: var(--accent-primary);
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 136, 255, 0.2) 100%);
+        }
+
+        .persona-emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .persona-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* Form Elements */
         .form-group {
             margin-bottom: 24px;
         }
@@ -324,7 +434,9 @@
             letter-spacing: 0.08em;
         }
 
-        input, textarea, select {
+        input,
+        textarea,
+        select {
             width: 100%;
             padding: 14px 18px;
             background: var(--bg-primary);
@@ -336,10 +448,12 @@
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        input:focus, textarea:focus, select:focus {
+        input:focus,
+        textarea:focus,
+        select:focus {
             outline: none;
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 4px var(--accent-primary-glow), 0 8px 24px rgba(0, 255, 136, 0.2);
+            box-shadow: 0 0 0 4px var(--accent-primary-glow), 0 8px 24px var(--accent-primary-glow);
             transform: translateY(-2px);
         }
 
@@ -351,7 +465,7 @@
             line-height: 1.6;
         }
 
-        /* Buttons with Gradient */
+        /* Buttons */
         button {
             padding: 14px 28px;
             background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
@@ -365,12 +479,12 @@
             font-family: 'Inter', sans-serif;
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
         }
 
         button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.5);
+            box-shadow: 0 8px 32px var(--accent-primary-glow);
         }
 
         button:active {
@@ -386,7 +500,7 @@
 
         button.secondary:hover {
             border-color: var(--accent-primary);
-            box-shadow: 0 4px 16px rgba(0, 255, 136, 0.2);
+            box-shadow: 0 4px 16px var(--accent-primary-glow);
         }
 
         button.danger {
@@ -405,7 +519,7 @@
             flex-wrap: wrap;
         }
 
-        /* Success Message with Animation */
+        /* Success Message */
         .success-message {
             background: linear-gradient(135deg, rgba(0, 255, 136, 0.2) 0%, rgba(0, 136, 255, 0.2) 100%);
             border: 2px solid var(--accent-primary);
@@ -417,7 +531,7 @@
             font-weight: 600;
             display: none;
             animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.3);
+            box-shadow: 0 8px 24px var(--accent-primary-glow);
         }
 
         .success-message.show {
@@ -445,13 +559,64 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
 
-        /* Logs with Better Hierarchy */
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid var(--border-color);
+        }
+
+        /* Log Search */
+        .log-search {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .log-search input {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .log-filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .filter-badge {
+            padding: 8px 16px;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .filter-badge:hover {
+            border-color: var(--accent-primary);
+        }
+
+        .filter-badge.active {
+            background: var(--accent-primary);
+            color: var(--bg-primary);
+            border-color: var(--accent-primary);
+        }
+
+        /* Logs */
         .log-container {
             background: var(--bg-primary);
             border: 2px solid var(--border-color);
@@ -511,7 +676,7 @@
             font-weight: 600;
         }
 
-        /* Track List with Visual Appeal */
+        /* Track List */
         .track-list {
             margin-top: 20px;
             max-height: 450px;
@@ -558,7 +723,7 @@
         .track-item:hover {
             border-color: var(--accent-primary);
             transform: translateX(8px);
-            box-shadow: 0 8px 24px rgba(0, 255, 136, 0.2);
+            box-shadow: 0 8px 24px var(--accent-primary-glow);
         }
 
         .track-item:hover::before {
@@ -595,7 +760,6 @@
             font-weight: 500;
         }
 
-        /* Badge for counts */
         .count-badge {
             display: inline-flex;
             align-items: center;
@@ -609,7 +773,7 @@
             font-size: 12px;
             font-weight: 800;
             margin-left: 8px;
-            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+            box-shadow: 0 4px 12px var(--accent-primary-glow);
         }
 
         /* Responsive */
@@ -629,9 +793,14 @@
             .metric-value {
                 font-size: 42px;
             }
+
+            .persona-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -640,9 +809,14 @@
                     <h1>Suno Bot Admin</h1>
                     <p class="subtitle">Real-time Monitoring & Control Panel</p>
                 </div>
-                <div class="status-pill">
-                    <span class="status-dot"></span>
-                    <span>System Online</span>
+                <div class="header-right">
+                    <div class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+                        <span id="themeIcon">🌙</span>
+                    </div>
+                    <div class="status-pill ws-disconnected" id="wsStatus">
+                        <span class="status-dot"></span>
+                        <span id="wsStatusText">Connecting...</span>
+                    </div>
                 </div>
             </div>
         </header>
@@ -673,9 +847,36 @@
                 <div class="metric-value" id="uptime">0m</div>
                 <div class="metric-change">Current Session</div>
             </div>
+            <div class="hero-metric">
+                <div class="metric-icon">🎨</div>
+                <div class="metric-label">Image Gens</div>
+                <div class="metric-value" id="imageGenerations">0</div>
+                <div class="metric-change">Total Created</div>
+            </div>
         </div>
 
-        <!-- Quick Actions -->
+        <!-- Analytics Charts -->
+        <div class="card expanded">
+            <div class="card-header" onclick="toggleCard(this)">
+                <div class="card-header-left">
+                    <div class="card-icon">📊</div>
+                    <div>
+                        <div class="card-title">Usage Analytics</div>
+                        <div class="card-subtitle">Historical metrics and trends</div>
+                    </div>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="card-content">
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="metricsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bot Configuration -->
         <div class="card expanded">
             <div class="card-header" onclick="toggleCard(this)">
                 <div class="card-header-left">
@@ -690,6 +891,10 @@
             <div class="card-content">
                 <div class="card-body">
                     <div id="configSuccess" class="success-message">Configuration saved successfully</div>
+
+                    <label>🎭 Persona Presets</label>
+                    <div class="persona-grid" id="personaGrid"></div>
+
                     <form onsubmit="saveConfig(event)">
                         <div class="form-group">
                             <label for="systemPrompt">🤖 System Prompt</label>
@@ -706,11 +911,111 @@
                                 <option value="shimmer">Shimmer - Soft & Clear</option>
                             </select>
                         </div>
+
+                        <div style="border-top: 2px solid var(--border-color); margin: 24px 0; padding-top: 24px;">
+                            <label style="color: var(--accent-primary); margin-bottom: 20px;">🖼️ Image Generation
+                                Settings</label>
+
+                            <div class="form-group">
+                                <label for="imgAspectRatio">📐 Aspect Ratio</label>
+                                <select id="imgAspectRatio">
+                                    <option value="1:1">1:1 (Square)</option>
+                                    <option value="16:9">16:9 (Landscape)</option>
+                                    <option value="9:16">9:16 (Portrait)</option>
+                                    <option value="4:3">4:3 (Standard)</option>
+                                    <option value="3:4">3:4 (Standard Portrait)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="imgSafety">🛡️ Safety Filter</label>
+                                <select id="imgSafety">
+                                    <option value="block_only_high">Block Only High Risks (Standard)</option>
+                                    <option value="block_medium_and_above">Block Medium & High Risks</option>
+                                    <option value="block_low_and_above">Block All Risks (Strict)</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="imgPersonGen">👥 Person Generation</label>
+                                <select id="imgPersonGen">
+                                    <option value="allow_adult">Allow Adults</option>
+                                    <option value="dont_allow">Don't Allow People</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="imgNumImages">🔢 Number of Images</label>
+                                <select id="imgNumImages">
+                                    <option value="1">1 Image</option>
+                                    <option value="2">2 Images</option>
+                                    <option value="3">3 Images</option>
+                                    <option value="4">4 Images</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="display: flex; gap: 20px; align-items: center;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="imgWatermark" style="width: auto; margin:0;">
+                                    <label for="imgWatermark" style="margin:0; font-weight: 500;">Add Watermark</label>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="imgRai" style="width: auto; margin:0;">
+                                    <label for="imgRai" style="margin:0; font-weight: 500;">Include RAI Reasons</label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="button-group">
                             <button type="submit">Save Configuration</button>
+                            <button type="button" class="secondary" onclick="exportMetrics()">📥 Export Metrics</button>
+                            <button type="button" class="secondary" onclick="exportLogs()">📥 Export Logs</button>
                             <button type="button" class="danger" onclick="resetMetrics()">Reset All Metrics</button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Editor -->
+        <div class="card">
+            <div class="card-header" onclick="toggleCard(this)">
+                <div class="card-header-left">
+                    <div class="card-icon">🖌️</div>
+                    <div>
+                        <div class="card-title">Image Editor (Nano Banana)</div>
+                        <div class="card-subtitle">Edit images with Gemini 2.5 Flash</div>
+                    </div>
+                </div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="card-content">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="editImageInput">1. Upload Image to Edit</label>
+                        <input type="file" id="editImageInput" accept="image/*" onchange="previewEditImage()">
+                        <div id="uploadPreviewContainer"
+                            style="margin-top: 10px; display: none; text-align: center; background: var(--bg-tertiary); padding: 10px; border-radius: 8px;">
+                            <img id="uploadPreview" style="max-width: 100%; max-height: 300px; border-radius: 8px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editPrompt">2. Describe the Edit</label>
+                        <textarea id="editPrompt"
+                            placeholder="e.g., Change the blue sofa to a vintage brown leather chesterfield."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <button onclick="submitImageEdit()" id="editBtn">✨ Generate Edit</button>
+                    </div>
+
+                    <div id="editResultContainer" style="display: none; margin-top: 20px;">
+                        <label>Result:</label>
+                        <div
+                            style="text-align: center; background: var(--bg-tertiary); padding: 10px; border-radius: 8px; border: 2px solid var(--accent-primary);">
+                            <img id="editResultImage" style="max-width: 100%; border-radius: 8px;">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -750,6 +1055,15 @@
             </div>
             <div class="card-content">
                 <div class="card-body">
+                    <div class="log-search">
+                        <input type="text" id="logSearchInput" placeholder="🔍 Search logs..." onkeyup="filterLogs()">
+                    </div>
+                    <div class="log-filters">
+                        <div class="filter-badge active" onclick="toggleFilter(this, 'all')">All</div>
+                        <div class="filter-badge" onclick="toggleFilter(this, 'info')">Info</div>
+                        <div class="filter-badge" onclick="toggleFilter(this, 'warn')">Warning</div>
+                        <div class="filter-badge" onclick="toggleFilter(this, 'error')">Error</div>
+                    </div>
                     <div class="button-group">
                         <button class="secondary" onclick="refreshLogs()">🔄 Refresh Logs</button>
                         <button class="secondary" onclick="clearLogs()">🗑️ Clear All</button>
@@ -766,12 +1080,109 @@
     </div>
 
     <script>
+        let ws;
+        let chart;
+        let allLogs = [];
+        let currentLogFilter = 'all';
+        let personas = [];
+
         function toggleCard(header) {
             const card = header.closest('.card');
             card.classList.toggle('expanded');
         }
 
-        let autoRefresh;
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', newTheme);
+            document.getElementById('themeIcon').textContent = newTheme === 'dark' ? '🌙' : '☀️';
+            localStorage.setItem('theme', newTheme);
+
+            // Update chart colors
+            if (chart) {
+                updateChartTheme();
+            }
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                document.getElementById('wsStatus').className = 'status-pill ws-connected';
+                document.getElementById('wsStatusText').textContent = 'Live';
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+
+                if (message.type === 'log') {
+                    addLogEntry(message.data);
+                } else if (message.type === 'metric') {
+                    loadMetrics();
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                document.getElementById('wsStatus').className = 'status-pill ws-disconnected';
+                document.getElementById('wsStatusText').textContent = 'Reconnecting...';
+
+                // Reconnect after 3 seconds
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+
+        function addLogEntry(log) {
+            allLogs.push(log);
+            if (allLogs.length > 500) {
+                allLogs.shift();
+            }
+            filterLogs();
+        }
+
+        function filterLogs() {
+            const searchTerm = document.getElementById('logSearchInput').value.toLowerCase();
+
+            let filtered = allLogs.filter(log => {
+                const matchesFilter = currentLogFilter === 'all' || log.level === currentLogFilter;
+                const matchesSearch = log.message.toLowerCase().includes(searchTerm) ||
+                    new Date(log.timestamp).toLocaleTimeString().toLowerCase().includes(searchTerm);
+                return matchesFilter && matchesSearch;
+            });
+
+            const logContainer = document.getElementById('logContainer');
+            const logCount = document.getElementById('logCount');
+
+            if (filtered.length > 0) {
+                logCount.textContent = filtered.length;
+                logContainer.innerHTML = filtered.map(log => `
+                    <div class="log-entry ${log.level}">
+                        <span class="log-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
+                        <span>${log.message}</span>
+                    </div>
+                `).join('');
+                logContainer.scrollTop = logContainer.scrollHeight;
+            } else {
+                logCount.textContent = '0';
+                logContainer.innerHTML = '<div class="empty-state">No matching logs</div>';
+            }
+        }
+
+        function toggleFilter(element, filter) {
+            document.querySelectorAll('.filter-badge').forEach(badge => {
+                badge.classList.remove('active');
+            });
+            element.classList.add('active');
+            currentLogFilter = filter;
+            filterLogs();
+        }
 
         function formatUptime(ms) {
             const seconds = Math.floor(ms / 1000);
@@ -795,51 +1206,19 @@
                 document.getElementById('ttsRequests').textContent = data.ttsRequests;
                 document.getElementById('uptime').textContent = formatUptime(data.uptime);
 
+                // New image stat
+                document.getElementById('imageGenerations').textContent = data.imageGenerations || 0;
+
                 const trackList = document.getElementById('trackList');
                 const trackCount = document.getElementById('trackCount');
 
-                if (data.linksPlayed && data.linksPlayed.length > 0) {
-                    trackCount.textContent = data.linksPlayed.length;
-                    trackList.innerHTML = data.linksPlayed.reverse().map(link => `
-                        <div class="track-item">
-                            <div class="track-title">🎵 ${link.title || 'Unknown Track'}</div>
-                            <div class="track-url">${link.url}</div>
-                            <div class="track-time">${new Date(link.timestamp).toLocaleString()}</div>
-                        </div>
-                    `).join('');
-                } else {
-                    trackCount.textContent = '0';
-                    trackList.innerHTML = '<div class="empty-state">No tracks played yet</div>';
-                }
+                // ... (rest of function)
             } catch (error) {
                 console.error('Error loading metrics:', error);
             }
         }
 
-        async function loadLogs() {
-            try {
-                const response = await fetch('/api/logs');
-                const data = await response.json();
-
-                const logContainer = document.getElementById('logContainer');
-                const logCount = document.getElementById('logCount');
-
-                if (data.logs && data.logs.length > 0) {
-                    logCount.textContent = data.logs.length;
-                    logContainer.innerHTML = data.logs.map(log => `
-                        <div class="log-entry ${log.level}">
-                            <span class="log-timestamp">${new Date(log.timestamp).toLocaleTimeString()}</span>
-                            <span>${log.message}</span>
-                        </div>
-                    `).join('');
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                } else {
-                    logCount.textContent = '0';
-                }
-            } catch (error) {
-                console.error('Error loading logs:', error);
-            }
-        }
+        // ...
 
         async function loadConfig() {
             try {
@@ -848,6 +1227,15 @@
 
                 document.getElementById('systemPrompt').value = data.systemPrompt;
                 document.getElementById('voiceSelect').value = data.currentVoice;
+
+                if (data.imageGenConfig) {
+                    document.getElementById('imgAspectRatio').value = data.imageGenConfig.aspectRatio || "1:1";
+                    document.getElementById('imgSafety').value = data.imageGenConfig.safetyLevel || "block_only_high";
+                    document.getElementById('imgPersonGen').value = data.imageGenConfig.personGeneration || "allow_adult";
+                    document.getElementById('imgNumImages').value = data.imageGenConfig.numberOfImages || 1;
+                    document.getElementById('imgWatermark').checked = data.imageGenConfig.addWatermark !== false;
+                    document.getElementById('imgRai').checked = data.imageGenConfig.includeRaiReasoning !== false;
+                }
             } catch (error) {
                 console.error('Error loading config:', error);
             }
@@ -859,11 +1247,20 @@
             const systemPrompt = document.getElementById('systemPrompt').value;
             const currentVoice = document.getElementById('voiceSelect').value;
 
+            const imageGenConfig = {
+                aspectRatio: document.getElementById('imgAspectRatio').value,
+                safetyLevel: document.getElementById('imgSafety').value,
+                personGeneration: document.getElementById('imgPersonGen').value,
+                numberOfImages: parseInt(document.getElementById('imgNumImages').value),
+                addWatermark: document.getElementById('imgWatermark').checked,
+                includeRaiReasoning: document.getElementById('imgRai').checked
+            };
+
             try {
                 const response = await fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ systemPrompt, currentVoice })
+                    body: JSON.stringify({ systemPrompt, currentVoice, imageGenConfig })
                 });
 
                 if (response.ok) {
@@ -882,7 +1279,8 @@
 
             try {
                 await fetch('/api/clear-logs', { method: 'POST' });
-                loadLogs();
+                allLogs = [];
+                filterLogs();
             } catch (error) {
                 console.error('Error clearing logs:', error);
             }
@@ -903,18 +1301,105 @@
             loadLogs();
         }
 
-        function startAutoRefresh() {
-            loadMetrics();
-            loadLogs();
-            loadConfig();
-
-            autoRefresh = setInterval(() => {
-                loadMetrics();
-                loadLogs();
-            }, 5000);
+        async function exportMetrics() {
+            window.location.href = '/api/export/metrics';
         }
 
-        startAutoRefresh();
+        async function exportLogs() {
+            window.location.href = '/api/export/logs';
+        }
+
+        // Initialize theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        document.getElementById('themeIcon').textContent = savedTheme === 'dark' ? '🌙' : '☀️';
+
+        // Start everything
+        connectWebSocket();
+        loadMetrics();
+        loadLogs();
+        loadConfig();
+        loadPersonas();
+
+        // Auto-refresh metrics every 10 seconds
+        setInterval(loadMetrics, 10000);
+        async function previewEditImage() {
+            const input = document.getElementById('editImageInput');
+            const preview = document.getElementById('uploadPreview');
+            const container = document.getElementById('uploadPreviewContainer');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    preview.src = e.target.result;
+                    container.style.display = 'block';
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function submitImageEdit() {
+            const input = document.getElementById('editImageInput');
+            const prompt = document.getElementById('editPrompt').value;
+            const btn = document.getElementById('editBtn');
+            const resultContainer = document.getElementById('editResultContainer');
+            const resultImage = document.getElementById('editResultImage');
+
+            if (!input.files || !input.files[0]) {
+                alert('Please upload an image first.');
+                return;
+            }
+            if (!prompt) {
+                alert('Please enter a prompt.');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Generating... (this may take a moment)';
+            resultContainer.style.display = 'none';
+
+            // Convert file to base64
+            const reader = new FileReader();
+            reader.readAsDataURL(input.files[0]);
+            reader.onload = async function () {
+                const base64Image = reader.result;
+
+                try {
+                    const response = await fetch('/api/edit-image', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            image: base64Image,
+                            prompt: prompt
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        resultImage.src = data.image;
+                        resultContainer.style.display = 'block';
+                        // Scroll to result
+                        resultContainer.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        alert('Error: ' + (data.error || 'Unknown error occurred'));
+                    }
+                } catch (e) {
+                    console.error(e);
+                    alert('Request failed: ' + e.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '✨ Generate Edit';
+                }
+            };
+            reader.onerror = function (error) {
+                console.error('Error: ', error);
+                alert('Error reading file');
+                btn.disabled = false;
+                btn.textContent = '✨ Generate Edit';
+            };
+        }
     </script>
 </body>
+
 </html>
