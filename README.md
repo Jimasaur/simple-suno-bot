@@ -21,7 +21,7 @@ cp .env.example .env
 node index.js
 ```
 
-The application reads `DISCORD_TOKEN` and `OPEN_AI_API_KEY` (including the underscore in `OPEN_AI`). Keep credentials out of source control. Check the dependency engine requirements before choosing a Node.js version; this older demo's setup notes may need adjustment for current dependencies.
+The application reads `DISCORD_TOKEN` and `OPEN_AI_API_KEY` (including the underscore in `OPEN_AI`). Keep credentials out of source control. Use Node.js 22.12 or newer: the locked `@discordjs/voice` dependency requires it. This supersedes the older Node.js 18 suggestion in the application README.
 
 ## Status and limitations
 
